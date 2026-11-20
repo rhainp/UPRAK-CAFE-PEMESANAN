@@ -1,0 +1,1257 @@
+import mysql.connector
+import os
+
+koneksi = mysql.connector.connect(
+    host="localhost",
+    port=3307,
+    user="root",
+    password="",
+    database="db_cafeuprak"
+)
+
+cursor = koneksi.cursor()
+if koneksi.is_connected():
+    print("Koneksi Berhasil!")
+else:
+    print("Gagal!")
+
+def login():
+    username = str(input('Username: '))
+    password = str(input("Password: "))
+
+    #validasi input kosong
+    if not username or not password :
+        print("\nUsername dan password tidak boleh kosong!")
+        return False
+    
+    query = "SELECT user_pelangi, nama_pelanggan_pelangi FROM pelanggan_pelangi WHERE user_pelangi = %s AND pass_pelangi = %s"
+    cursor.execute(query, (username, password))
+
+    result = cursor.fetchone() #mengambil satu data saja karena kita akan login
+
+    if result :
+        print(f"\nLogin berhasil! Selamat datang, {result[1]}\n") #result[0] = username
+        return result[0], result[1]
+    else:
+        print("\nLogin gagal! Username atau password salah.")
+        return False
+    
+def tambah_menu():
+    id = input("Masukkan ID menu: ")
+    nama = input("Masukkan nama menu: ")
+    kategori = input("Masukkan kategori (Makanan/Minuman): ")
+    harga = int(input("Masukkan harga: "))
+    stok = int(input("Masukkan stok: "))
+    sql = " INSERT INTO menucafe_pelangi (id_menu_pelangi, nama_menu_pelangi, kategori_pelangi, harga_pelangi, stok_pelangi) VALUES (%s, %s, %s, %s, %s) "
+    cursor.execute (sql, (id,nama, kategori, harga, stok))
+    koneksi.commit()
+    print("\nMenu berhasil ditambahkan!")
+
+def tampil_menu():
+    os.system("clear")
+    cursor.execute("SELECT * FROM menucafe_pelangi")
+    hasil = cursor.fetchall() #mengambil semua data hasil select
+
+    print("\n=============== DATA MENU CAFE ===============")
+    for nomor, row in enumerate(hasil, start=1):
+        nama = row[1]
+        kategori = row[2]
+        harga = row[3]
+        stok = row[4]
+        print(f"{nomor}. {nama} - {kategori} | Rp{harga} | Stok: {stok}")
+
+def ubah_menu():
+    id_menu_pelangi = input("\nMasukkan ID menu yang ingin diubah: ")
+    nama = input("Masukkan nama menu baru: ")
+    kategori = input("Masukkan kategori baru (Makanan/Minuman): ")
+    harga = int(input("Masukkan harga baru: "))
+    stok = int(input("Masukkan stok baru: "))
+    sql = "UPDATE menucafe_pelangi SET nama_menu_pelangi = %s, kategori_pelangi = %s, harga_pelangi = %s, stok_pelangi = %s WHERE id_menu_pelangi = %s"
+    cursor.execute(sql, ( nama, kategori, harga, stok, id_menu_pelangi))
+    koneksi.commit()
+    print("\nData menu berhasil diubah!")
+
+def hapus_menu():
+    id = input("ID yg dihapus: ")
+    sql = "DELETE FROM menucafe_pelangi WHERE id_menu_pelangi=%s"
+    cursor.execute(sql,(id,))
+    koneksi.commit()
+    print("Data menu dihapus!\n")
+
+def tambah_pelanggan():
+    os.system("clear")
+    id = input('Masukkan ID Pelanggan: ')
+    nama = input("Masukkan nama pelanggan: ")
+    username = input("Masukkan username: ")
+    password = input("Masukkan password: ")
+
+    sql = """
+    INSERT INTO pelanggan_pelangi
+    (id_pelanggan_pelangi, nama_pelanggan_pelangi, user_pelangi, pass_pelangi)
+    VALUES (%s, %s, %s, %s)
+    """
+
+    cursor.execute(sql, (id, nama, username, password))
+    koneksi.commit()
+    print("\nData pelanggan berhasil ditambahkan!")
+
+def tampil_pelanggan():
+    os.system("clear")
+    cursor.execute("SELECT * FROM pelanggan_pelangi")
+    hasil = cursor.fetchall()
+
+    print("\n===== DATA PELANGGAN =====")
+    for nomor, row in enumerate(hasil, start=1):
+        id = row[0]
+        nama = row[1]
+        username = row[2]
+        password = row[3]
+
+        print(f"{nomor}. {id} - {nama} | Username: {username} | Password: {password}")
+
+def tampil_pelanggan_user():
+    os.system("clear")
+    cursor.execute("SELECT * FROM pelanggan_pelangi")
+    hasil = cursor.fetchall()
+
+    print("\n===== DATA PELANGGAN =====")
+    for nomor, row in enumerate(hasil, start=1):
+        id = row[0]
+        nama = row[1]
+
+        print(f"{nomor}. {id} - {nama}")
+
+def ubah_pelanggan():
+    os.system("clear")
+    id_pelanggan_pelangi = input("\nMasukkan ID pelanggan yang ingin diubah: ")
+    nama = input("Masukkan nama pelanggan baru: ")
+    username = input("Masukkan username baru: ")
+    password = input("Masukkan password baru: ")
+
+    sql = """
+    UPDATE pelanggan_pelangi
+    SET nama_pelanggan_pelangi = %s,
+        user_pelangi = %s,
+        pass_pelangi = %s
+    WHERE id_pelanggan_pelangi = %s
+    """
+    cursor.execute (sql,(nama, username, password, id_pelanggan_pelangi))
+    koneksi.commit()
+    print("\nData pelanggan berhasil diubah!")
+
+def hapus_pelanggan():
+    os.system("clear")
+    id = input("ID yg dihapus: ")
+    sql = "DELETE FROM pelanggan_pelangi WHERE id_pelanggan_pelangi=%s"
+    cursor.execute(sql,(id,))
+    koneksi.commit()
+    print("Data pelanggan berhasil dihapus!\n")
+
+def tambah_pesanan():
+    os.system("clear")
+
+    print("\n===== TAMBAH PESANAN =====")
+
+    tampil_pelanggan()
+    id_pelanggan_pelangi = input("\nMasukkan ID pelanggan: ")
+
+    # Cek apakah pelanggan terdaftar
+    sql = """
+    SELECT id_pelanggan_pelangi
+    FROM pelanggan_pelangi
+    WHERE id_pelanggan_pelangi = %s
+    """
+    cursor.execute(sql, (id_pelanggan_pelangi,))
+    pelanggan = cursor.fetchone()
+
+    if pelanggan is None:
+        print("Pelanggan tidak ditemukan!")
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    daftar_pesanan = []
+    total_harga = 0
+
+    while True:
+        tampil_menu()
+
+        nama_menu_pelangi = input("\nMasukkan nama menu: ")
+
+        # Mencari menu tanpa memperhatikan huruf besar/kecil
+        sql = """
+        SELECT id_menu_pelangi, nama_menu_pelangi, harga_pelangi, stok_pelangi
+        FROM menucafe_pelangi
+        WHERE LOWER(nama_menu_pelangi) LIKE LOWER(%s)
+        """
+
+        cursor.execute(sql, ("%" + nama_menu_pelangi + "%",))
+        hasil = cursor.fetchall()
+
+        if len(hasil) == 0:
+            print("Menu tidak ditemukan!")
+            continue
+
+        # Jika ada lebih dari satu menu yang cocok
+        if len(hasil) > 1:
+            print("\nDitemukan beberapa menu:")
+            for nomor, menu in enumerate(hasil, start=1):
+                print(f"{nomor}. {menu[1]} - Rp{menu[2]}")
+
+            pilihan = int(input("Pilih nomor menu: "))
+
+            if pilihan < 1 or pilihan > len(hasil):
+                print("Pilihan tidak valid!")
+                continue
+
+            menu = hasil[pilihan - 1]
+
+        else:
+            menu = hasil[0]
+
+        id_menu_pelangi = menu[0]
+        nama_menu_pelangi = menu[1]
+        harga = menu[2]
+        stok = menu[3]
+
+        print(f"\nMenu  : {nama_menu_pelangi}")
+        print(f"Harga : Rp{harga}")
+        print(f"Stok  : {stok}")
+
+        jumlah = int(input("Masukkan jumlah: "))
+
+        if jumlah <= 0:
+            print("Jumlah harus lebih dari 0!")
+            continue
+
+        # Menghitung pesanan menu yang sama
+        jumlah_sebelumnya = sum(
+            item[1] for item in daftar_pesanan
+            if item[0] == id_menu_pelangi
+        )
+
+        if jumlah + jumlah_sebelumnya > stok:
+            print("Stok tidak mencukupi!")
+            continue
+
+        subtotal = harga * jumlah
+        total_harga += subtotal
+
+        daftar_pesanan.append((id_menu_pelangi, jumlah, subtotal))
+
+        print(f"Subtotal: Rp{subtotal}")
+
+        tambah = input("\nTambah menu lain? (y/n): ").lower()
+
+        if tambah != "y":
+            break
+
+    if len(daftar_pesanan) == 0:
+        print("Belum ada menu yang dipesan!")
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    # Membuat ID pesanan otomatis
+    sql = """
+    SELECT id_pesanan_pelangi
+    FROM pesanan_pelangi
+    ORDER BY id_pesanan_pelangi DESC
+    LIMIT 1
+    """
+    cursor.execute(sql)
+    hasil = cursor.fetchone()
+
+    if hasil is None:
+        id_pesanan_pelangi = "PS001"
+    else:
+        nomor = int(hasil[0][2:]) + 1
+        id_pesanan_pelangi = f"PS{nomor:03d}"
+
+    total_jumlah = sum(item[1] for item in daftar_pesanan)
+
+    # Menyimpan transaksi utama
+    sql = """
+    INSERT INTO pesanan_pelangi
+    (id_pesanan_pelangi, id_pelanggan_pelangi, jumlah_pelangi, total_harga_pelangi, status_pelangi, tanggal_pesanan_pelangi)
+    VALUES (%s, %s, %s, %s, %s, NOW())
+    """
+
+    cursor.execute(sql, (
+        id_pesanan_pelangi,
+        id_pelanggan_pelangi,
+        total_jumlah,
+        total_harga,
+        "Diproses"
+    ))
+
+    # Menyimpan setiap menu ke detail pesanan
+    for item in daftar_pesanan:
+        id_menu_pelangi = item[0]
+        jumlah = item[1]
+        subtotal = item[2]
+
+        sql = """
+        INSERT INTO detail_pesanan_pelangi
+        (id_pesanan_pelangi, id_menu_pelangi, jumlah_pelangi, subtotal_pelangi)
+        VALUES (%s, %s, %s, %s)
+        """
+
+        cursor.execute(sql, (
+            id_pesanan_pelangi,
+            id_menu_pelangi,
+            jumlah,
+            subtotal
+        ))
+
+        # Mengurangi stok menu
+        sql = """
+        UPDATE menucafe_pelangi
+        SET stok_pelangi = stok_pelangi - %s
+        WHERE id_menu_pelangi = %s
+        """
+
+        cursor.execute(sql, (jumlah, id_menu_pelangi))
+
+    koneksi.commit()
+
+    print("\n===== PESANAN BERHASIL =====")
+    print(f"ID Pesanan  : {id_pesanan_pelangi}")
+    print(f"Total Menu  : {total_jumlah}")
+    print(f"Total Harga : Rp{total_harga}")
+    print("Status      : Diproses")
+
+    input("\nTekan Enter untuk kembali...")
+
+    os.system("clear")
+    tampil_pelanggan()
+    id_pelanggan_pelangi = input("\nMasukkan ID pelanggan: ")
+    tampil_menu()
+    id_menu_pelangi = input("\nMasukkan ID menu: ")
+    jumlah = int(input("Masukkan jumlah pesanan: "))
+
+    cursor.execute("SELECT harga_pelangi, stok_pelangi FROM menucafe_pelangi WHERE id_menu_pelangi = %s",(id_menu_pelangi,))
+    hasil = cursor.fetchone()
+
+    if hasil:
+        harga = hasil[0]
+        stok = hasil[1]
+
+        if jumlah <= 0:
+            print("\nJumlah pesanan harus lebih dari 0!")
+        elif jumlah > stok:
+            print("\nStok menu tidak mencukupi!")
+        else:
+            total_harga = harga * jumlah
+
+            sql = """INSERT INTO pesanan_pelangi (id_pelanggan_pelangi, id_menu_pelangi, jumlah_pelangi, total_harga_pelangi, status_pelangi, tanggal_pesanan_pelangi)VALUES (%s, %s, %s, %s, %s, NOW())"""
+            cursor.execute(sql, (id_pelanggan_pelangi, id_menu_pelangi, jumlah, total_harga, "Diproses"))
+            cursor.execute(
+                "UPDATE menucafe_pelangi SET stok_pelangi = stok_pelangi - %s WHERE id_menu_pelangi = %s",
+                (jumlah, id_menu_pelangi)
+            )
+
+            koneksi.commit()
+
+            print("\nPesanan berhasil ditambahkan!")
+            print("Total harga: Rp", total_harga)
+    else:
+        print("\nID menu tidak ditemukan!")
+
+def tampil_pesanan():
+    os.system("clear")
+
+    sql = """
+    SELECT
+        pesanan_pelangi.id_pesanan_pelangi,
+        pelanggan_pelangi.nama_pelanggan_pelangi,
+        menucafe_pelangi.nama_menu_pelangi,
+        detail_pesanan_pelangi.jumlah_pelangi,
+        detail_pesanan_pelangi.subtotal_pelangi,
+        pesanan_pelangi.total_harga_pelangi,
+        pesanan_pelangi.status_pelangi,
+        pesanan_pelangi.tanggal_pesanan_pelangi
+    FROM pesanan_pelangi
+    INNER JOIN pelanggan_pelangi
+    ON pesanan_pelangi.id_pelanggan_pelangi = pelanggan_pelangi.id_pelanggan_pelangi
+    INNER JOIN detail_pesanan_pelangi
+    ON pesanan_pelangi.id_pesanan_pelangi = detail_pesanan_pelangi.id_pesanan_pelangi
+    INNER JOIN menucafe_pelangi
+    ON detail_pesanan_pelangi.id_menu_pelangi = menucafe_pelangi.id_menu_pelangi
+    """
+
+    cursor.execute(sql)
+    hasil = cursor.fetchall()
+
+    print("\n===== DATA PESANAN CAFE =====")
+    print("=" * 115)
+    print(f"{'No':<5} {'ID Pesanan':<12} {'Pelanggan':<15} {'Menu':<20} {'Jumlah':<8} {'Subtotal':<15} {'Total Harga':<15} {'Status':<12} {'Tanggal'}")
+    print("=" * 115)
+
+    for nomor, row in enumerate(hasil, start=1):
+        print(f"{nomor:<5} {row[0]:<12} {row[1]:<15} {row[2]:<20} {row[3]:<8} Rp{row[4]:<12,} Rp{row[5]:<12,} {row[6]:<12} {row[7]}")
+
+    print("=" * 115)
+
+def ubah_pesanan():
+    os.system("clear")
+
+    print("\n===== UBAH PESANAN =====")
+
+    tampil_pesanan()
+    id_pesanan_pelangi = input("\nMasukkan ID pesanan yang ingin diubah: ")
+
+    # Cek pesanan
+    sql = """
+    SELECT id_pelanggan_pelangi, status_pelangi
+    FROM pesanan_pelangi
+    WHERE id_pesanan_pelangi = %s
+    """
+    cursor.execute(sql, (id_pesanan_pelangi,))
+    pesanan = cursor.fetchone()
+
+    if pesanan is None:
+        print("\nID pesanan tidak ditemukan!")
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    status_lama = pesanan[1]
+
+    if status_lama == "Dibatalkan":
+        print("\nPesanan yang sudah dibatalkan tidak dapat diubah!")
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    # Mengambil detail pesanan lama
+    sql = """
+    SELECT id_menu_pelangi, jumlah_pelangi
+    FROM detail_pesanan_pelangi
+    WHERE id_pesanan_pelangi = %s
+    """
+    cursor.execute(sql, (id_pesanan_pelangi,))
+    detail_lama = cursor.fetchall()
+
+    # Mengembalikan stok pesanan lama
+    if status_lama == "Diproses":
+        for item in detail_lama:
+            cursor.execute("""
+            UPDATE menucafe_pelangi
+            SET stok_pelangi = stok_pelangi + %s
+            WHERE id_menu_pelangi = %s
+            """, (item[1], item[0]))
+
+    # Mengubah pelanggan
+    tampil_pelanggan()
+    id_pelanggan_pelangi = input("\nMasukkan ID pelanggan baru: ")
+
+    cursor.execute("""
+    SELECT id_pelanggan_pelangi
+    FROM pelanggan_pelangi
+    WHERE id_pelanggan_pelangi = %s
+    """, (id_pelanggan_pelangi,))
+
+    if cursor.fetchone() is None:
+        print("\nID pelanggan tidak ditemukan!")
+        koneksi.rollback()
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    daftar_pesanan = []
+    total_harga = 0
+
+    # Memasukkan menu baru
+    while True:
+        tampil_menu()
+
+        nama_menu_pelangi = input("\nMasukkan nama menu: ")
+
+        sql = """
+        SELECT id_menu_pelangi, nama_menu_pelangi, harga_pelangi, stok_pelangi
+        FROM menucafe_pelangi
+        WHERE LOWER(nama_menu_pelangi) LIKE LOWER(%s)
+        """
+        cursor.execute(sql, ("%" + nama_menu_pelangi + "%",))
+        hasil = cursor.fetchall()
+
+        if len(hasil) == 0:
+            print("Menu tidak ditemukan!")
+            continue
+
+        if len(hasil) > 1:
+            print("\nDitemukan beberapa menu:")
+            for nomor, menu in enumerate(hasil, start=1):
+                print(f"{nomor}. {menu[1]} - Rp{menu[2]}")
+
+            pilihan = int(input("Pilih nomor menu: "))
+
+            if pilihan < 1 or pilihan > len(hasil):
+                print("Pilihan tidak valid!")
+                continue
+
+            menu = hasil[pilihan - 1]
+        else:
+            menu = hasil[0]
+
+        id_menu_pelangi = menu[0]
+        nama_menu_pelangi = menu[1]
+        harga = menu[2]
+        stok = menu[3]
+
+        print(f"\nMenu  : {nama_menu_pelangi}")
+        print(f"Harga : Rp{harga}")
+        print(f"Stok  : {stok}")
+
+        jumlah = int(input("Masukkan jumlah: "))
+
+        if jumlah <= 0:
+            print("Jumlah harus lebih dari 0!")
+            continue
+
+        jumlah_sebelumnya = sum(
+            item[1] for item in daftar_pesanan
+            if item[0] == id_menu_pelangi
+        )
+
+        if jumlah + jumlah_sebelumnya > stok:
+            print("Stok tidak mencukupi!")
+            continue
+
+        subtotal = harga * jumlah
+        total_harga += subtotal
+
+        daftar_pesanan.append((id_menu_pelangi, jumlah, subtotal))
+
+        print(f"Subtotal: Rp{subtotal}")
+
+        tambah = input("\nTambah menu lain? (y/n): ").lower()
+
+        if tambah != "y":
+            break
+
+    if len(daftar_pesanan) == 0:
+        print("Belum ada menu yang dipesan!")
+        koneksi.rollback()
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    # Mengubah status pesanan
+    print("\nPilihan Status:")
+    print("1. Diproses")
+    print("2. Selesai")
+    print("3. Dibatalkan")
+
+    pilihan_status = input("Pilih status baru: ")
+
+    if pilihan_status == "1":
+        status = "Diproses"
+    elif pilihan_status == "2":
+        status = "Selesai"
+    elif pilihan_status == "3":
+        status = "Dibatalkan"
+    else:
+        print("Pilihan status tidak valid!")
+        koneksi.rollback()
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    total_jumlah = sum(item[1] for item in daftar_pesanan)
+
+    # Jika status baru Diproses, kurangi stok
+    if status == "Diproses":
+        for item in daftar_pesanan:
+            cursor.execute("""
+            UPDATE menucafe_pelangi
+            SET stok_pelangi = stok_pelangi - %s
+            WHERE id_menu_pelangi = %s
+            """, (item[1], item[0]))
+
+    # Jika status baru Dibatalkan, stok tidak dikurangi
+    # Hapus detail pesanan lama
+    cursor.execute("""
+    DELETE FROM detail_pesanan_pelangi
+    WHERE id_pesanan_pelangi = %s
+    """, (id_pesanan_pelangi,))
+
+    # Memperbarui data utama pesanan
+    sql = """
+    UPDATE pesanan_pelangi
+    SET id_pelanggan_pelangi = %s,
+        jumlah_pelangi = %s,
+        total_harga_pelangi = %s,
+        status_pelangi = %s
+    WHERE id_pesanan_pelangi = %s
+    """
+
+    cursor.execute(sql, (
+        id_pelanggan_pelangi,
+        total_jumlah,
+        total_harga,
+        status,
+        id_pesanan_pelangi
+    ))
+
+    # Menyimpan detail pesanan baru
+    for item in daftar_pesanan:
+        cursor.execute("""
+        INSERT INTO detail_pesanan_pelangi
+        (id_pesanan_pelangi, id_menu_pelangi, jumlah_pelangi, subtotal_pelangi)
+        VALUES (%s, %s, %s, %s)
+        """, (
+            id_pesanan_pelangi,
+            item[0],
+            item[1],
+            item[2]
+        ))
+
+    koneksi.commit()
+
+    print("\n===== PESANAN BERHASIL DIUBAH =====")
+    print(f"ID Pesanan  : {id_pesanan_pelangi}")
+    print(f"Total Menu  : {total_jumlah}")
+    print(f"Total Harga : Rp{total_harga}")
+    print(f"Status      : {status}")
+
+    input("\nTekan Enter untuk kembali...")
+
+def hapus_pesanan():
+    os.system("clear")
+
+    tampil_pesanan()
+
+    id_pesanan_pelangi = input("\nMasukkan ID pesanan yang ingin dihapus: ")
+
+    # Cek apakah pesanan tersedia
+    sql = """
+    SELECT status_pelangi
+    FROM pesanan_pelangi
+    WHERE id_pesanan_pelangi = %s
+    """
+    cursor.execute(sql, (id_pesanan_pelangi,))
+    hasil = cursor.fetchone()
+
+    if hasil is None:
+        print("\nID pesanan tidak ditemukan!")
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    status = hasil[0]
+
+    konfirmasi = input("\nYakin ingin menghapus pesanan? (y/n): ").lower()
+
+    if konfirmasi == "y":
+
+        # Mengambil detail pesanan
+        sql = """
+        SELECT id_menu_pelangi, jumlah_pelangi
+        FROM detail_pesanan_pelangi
+        WHERE id_pesanan_pelangi = %s
+        """
+        cursor.execute(sql, (id_pesanan_pelangi,))
+        detail = cursor.fetchall()
+
+        # Mengembalikan stok jika pesanan masih diproses
+        if status == "Diproses":
+            for item in detail:
+                cursor.execute("""
+                UPDATE menucafe_pelangi
+                SET stok_pelangi = stok_pelangi + %s
+                WHERE id_menu_pelangi = %s
+                """, (item[1], item[0]))
+
+        # Menghapus detail pesanan terlebih dahulu
+        cursor.execute("""
+        DELETE FROM detail_pesanan_pelangi
+        WHERE id_pesanan_pelangi = %s
+        """, (id_pesanan_pelangi,))
+
+        # Menghapus pesanan utama
+        cursor.execute("""
+        DELETE FROM pesanan_pelangi
+        WHERE id_pesanan_pelangi = %s
+        """, (id_pesanan_pelangi,))
+
+        koneksi.commit()
+
+        print("\nPesanan berhasil dihapus!")
+
+    else:
+        print("\nPenghapusan pesanan dibatalkan!")
+
+    input("\nTekan Enter untuk kembali...")
+
+def cari_pesanan():
+    os.system("clear")
+
+    status = input("Masukkan status pesanan: ")
+    sql = """
+    SELECT * FROM pesanan_pelangi
+    WHERE status_pelangi = %s
+    """
+
+    cursor.execute(sql, (status,))
+    hasil = cursor.fetchall()
+
+    print("\n===== DATA PESANAN =====")
+    for nomor, row in enumerate(hasil, start=1):
+        print(f"{nomor}. ID Pesanan: {row[0]} | ID Pelanggan: {row[1]} | Jumlah: {row[2]} | Total: Rp{row[3]} | Status: {row[4]} | Tanggal: {row[5]}")
+
+def urut_menu():
+    os.system("clear")
+
+    sql = """
+    SELECT * FROM menucafe_pelangi
+    ORDER BY harga_pelangi ASC
+    """
+
+    cursor.execute(sql)
+    hasil = cursor.fetchall()
+
+    print("\n===== DATA MENU (TERMURAH) =====")
+    for nomor, row in enumerate(hasil, start=1):
+        print(f"{nomor}. {row[1]} - {row[2]} | Rp{row[3]} | Stok: {row[4]}")
+
+def cari_menu():
+    os.system("clear")
+
+    keyword = input("Masukkan nama menu yang dicari: ")
+
+    sql = """
+    SELECT * FROM menucafe_pelangi
+    WHERE nama_menu_pelangi LIKE %s
+    """
+
+    cursor.execute(sql, (f"%{keyword}%",))
+    hasil = cursor.fetchall()
+
+    print("\n===== HASIL PENCARIAN MENU =====")
+    for nomor, row in enumerate(hasil, start=1):
+        print(f"{nomor}. {row[1]} - {row[2]} | Rp{row[3]} | Stok: {row[4]}")
+
+def pesan_menu():
+    os.system("clear")
+
+    print("\n===== PESAN MENU =====")
+
+    nama_pelanggan_pelangi= input("Masukkan nama anda: ")
+
+    # Cek apakah pelanggan terdaftar
+    sql = """
+    SELECT id_pelanggan_pelangi, nama_pelanggan_pelangi
+    FROM pelanggan_pelangi
+    WHERE nama_pelanggan_pelangi = %s
+    """
+    cursor.execute(sql, (nama_pelanggan_pelangi,))
+    pelanggan = cursor.fetchone()
+
+    if pelanggan is None:
+        print("Pelanggan tidak ditemukan!")
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    id_pelanggan_pelangi = pelanggan[0]
+    daftar_pesanan = []
+    total_harga = 0
+
+    while True:
+        tampil_menu()
+
+        nama_menu_pelangi = input("\nMasukkan nama menu: ")
+
+        # Mencari menu tanpa memperhatikan huruf besar/kecil
+        sql = """
+        SELECT id_menu_pelangi, nama_menu_pelangi, harga_pelangi, stok_pelangi
+        FROM menucafe_pelangi
+        WHERE LOWER(nama_menu_pelangi) LIKE LOWER(%s)
+        """
+
+        cursor.execute(sql, ("%" + nama_menu_pelangi + "%",))
+        hasil = cursor.fetchall()
+
+        if len(hasil) == 0:
+            print("Menu tidak ditemukan!")
+            continue
+
+        # Jika ada lebih dari satu menu yang cocok
+        if len(hasil) > 1:
+            print("\nDitemukan beberapa menu:")
+            for nomor, menu in enumerate(hasil, start=1):
+                print(f"{nomor}. {menu[1]} - Rp{menu[2]}")
+
+            pilihan = int(input("Pilih nomor menu: "))
+
+            if pilihan < 1 or pilihan > len(hasil):
+                print("Pilihan tidak valid!")
+                continue
+
+            menu = hasil[pilihan - 1]
+
+        else:
+            menu = hasil[0]
+
+        id_menu_pelangi = menu[0]
+        nama_menu_pelangi = menu[1]
+        harga = menu[2]
+        stok = menu[3]
+
+        print(f"\nMenu  : {nama_menu_pelangi}")
+        print(f"Harga : Rp{harga}")
+        print(f"Stok  : {stok}")
+
+        jumlah = int(input("Masukkan jumlah: "))
+
+        if jumlah <= 0:
+            print("Jumlah harus lebih dari 0!")
+            continue
+
+        # Menghitung pesanan menu yang sama dalam transaksi ini
+        jumlah_sebelumnya = sum(
+            item[1] for item in daftar_pesanan
+            if item[0] == id_menu_pelangi
+        )
+
+        if jumlah + jumlah_sebelumnya > stok:
+            print("Stok tidak mencukupi!")
+            continue
+
+        subtotal = harga * jumlah
+        total_harga += subtotal
+
+        daftar_pesanan.append((id_menu_pelangi, jumlah, subtotal))
+
+        print(f"Subtotal: Rp{subtotal}")
+
+        tambah = input("\nTambah menu lain? (y/n): ").lower()
+
+        if tambah != "y":
+            break
+
+    if len(daftar_pesanan) == 0:
+        print("Belum ada menu yang dipesan!")
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    # Membuat ID pesanan otomatis
+    sql = """
+    SELECT id_pesanan_pelangi
+    FROM pesanan_pelangi
+    ORDER BY id_pesanan_pelangi DESC
+    LIMIT 1
+    """
+    cursor.execute(sql)
+    hasil = cursor.fetchone()
+
+    if hasil is None:
+        id_pesanan_pelangi = "PS001"
+    else:
+        nomor = int(hasil[0][2:]) + 1
+        id_pesanan_pelangi = f"PS{nomor:03d}"
+
+    total_jumlah = sum(item[1] for item in daftar_pesanan)
+    
+    print("\n===== PEMBAYARAN =====")
+    print(f"Total Harga : Rp{total_harga:,}")
+
+    while True:
+        uang_masuk = int(input("Uang Masuk  : Rp"))
+
+        if uang_masuk < total_harga:
+            print("Uang tidak mencukupi! Silakan masukkan kembali.")
+        else:
+            break
+
+    kembalian = uang_masuk - total_harga
+    # Menyimpan transaksi utama
+    sql = """
+    INSERT INTO pesanan_pelangi
+    (id_pesanan_pelangi, id_pelanggan_pelangi, jumlah_pelangi, total_harga_pelangi, status_pelangi, tanggal_pesanan_pelangi)
+    VALUES (%s, %s, %s, %s, %s, NOW())
+    """
+
+    cursor.execute(sql, (
+        id_pesanan_pelangi,
+        id_pelanggan_pelangi,
+        total_jumlah,
+        total_harga,
+        "Berhasil"
+    ))
+
+    # Menyimpan setiap menu ke detail pesanan
+    for item in daftar_pesanan:
+        id_menu_pelangi = item[0]
+        jumlah = item[1]
+        subtotal = item[2]
+
+        sql = """
+        INSERT INTO detail_pesanan_pelangi
+        (id_pesanan_pelangi, id_menu_pelangi, jumlah_pelangi, subtotal_pelangi)
+        VALUES (%s, %s, %s, %s)
+        """
+
+        cursor.execute(sql, (
+            id_pesanan_pelangi,
+            id_menu_pelangi,
+            jumlah,
+            subtotal
+        ))
+
+        # Mengurangi stok menu
+        sql = """
+        UPDATE menucafe_pelangi
+        SET stok_pelangi = stok_pelangi - %s
+        WHERE id_menu_pelangi = %s
+        """
+
+        cursor.execute(sql, (jumlah, id_menu_pelangi))
+
+    koneksi.commit()
+
+    print("\n===== PESANAN BERHASIL =====")
+    print(f"ID Pesanan  : {id_pesanan_pelangi}")
+    print(f"Total Menu  : {total_jumlah}")
+    print(f"Total Harga : Rp{total_harga:,}")
+    print(f"Uang Masuk  : Rp{uang_masuk:,}")
+    print(f"Kembalian   : Rp{kembalian:,}")
+    print("Status      : Berhasil")
+
+    input("\nTekan Enter untuk kembali...")
+
+def lihat_pesanan():
+    os.system("clear")
+
+    print("\n===== PESANAN SAYA =====")
+
+    nama_pelanggan_pelangi = input("Ketik nama anda: ")
+
+    # Mencari ID pelanggan berdasarkan nama
+    sql = """
+    SELECT id_pelanggan_pelangi
+    FROM pelanggan_pelangi
+    WHERE LOWER(nama_pelanggan_pelangi) = LOWER(%s)
+    """
+    cursor.execute(sql, (nama_pelanggan_pelangi,))
+    pelanggan = cursor.fetchone()
+
+    if pelanggan is None:
+        print("\nPelanggan tidak ditemukan!")
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    id_pelanggan_pelangi = pelanggan[0]
+
+    sql = """
+    SELECT
+        p.id_pesanan_pelangi,
+        p.total_harga_pelangi,
+        p.status_pelangi,
+        p.tanggal_pesanan_pelangi,
+        m.nama_menu_pelangi,
+        d.jumlah_pelangi,
+        d.subtotal_pelangi
+    FROM pesanan_pelangi p
+    JOIN detail_pesanan_pelangi d
+        ON p.id_pesanan_pelangi = d.id_pesanan_pelangi
+    JOIN menucafe_pelangi m
+        ON d.id_menu_pelangi = m.id_menu_pelangi
+    WHERE p.id_pelanggan_pelangi = %s
+    ORDER BY p.tanggal_pesanan_pelangi DESC
+    """
+
+    cursor.execute(sql, (id_pelanggan_pelangi,))
+    hasil = cursor.fetchall()
+
+    if len(hasil) == 0:
+        print("\nBelum ada pesanan.")
+
+    else:
+        id_sebelumnya = ""
+
+        for row in hasil:
+            if row[0] != id_sebelumnya:
+                if id_sebelumnya != "":
+                    print(f"\nTotal Harga : Rp{total_harga:,}")
+                    print("-" * 40)
+
+                id_sebelumnya = row[0]
+                total_harga = row[1]
+
+                print(f"\nID Pesanan  : {row[0]}")
+                print(f"Tanggal     : {row[3]}")
+                print(f"Status      : {row[2]}")
+                print("\nDaftar Menu:")
+
+            print(f"- {row[4]} x{row[5]} = Rp{row[6]:,}")
+
+        print(f"\nTotal Harga : Rp{total_harga:,}")
+        print("-" * 40)
+
+    input("\nTekan Enter untuk kembali...")
+
+def batalkan_pesanan():
+
+    os.system("clear")
+
+    print("\n===== HAPUS PESANAN =====")
+
+    id_pesanan_pelangi = input("Masukkan ID pesanan: ")
+
+    # Mengecek pesanan
+    sql = """
+    SELECT status_pelangi
+    FROM pesanan_pelangi
+    WHERE id_pesanan_pelangi = %s
+    """
+
+    cursor.execute(sql, (id_pesanan_pelangi,))
+    hasil = cursor.fetchone()
+
+    if hasil is None:
+        print("\nPesanan tidak ditemukan!")
+
+    else:
+        konfirmasi = input("Yakin ingin menghapus pesanan? (y/n): ").lower()
+
+        if konfirmasi == "y":
+
+            # Mengambil detail menu
+            sql = """
+            SELECT id_menu_pelangi, jumlah_pelangi
+            FROM detail_pesanan_pelangi
+            WHERE id_pesanan_pelangi = %s
+            """
+
+            cursor.execute(sql, (id_pesanan_pelangi,))
+            daftar_menu = cursor.fetchall()
+
+            # Mengembalikan stok jika pesanan masih diproses
+            if hasil[0] == "Diproses":
+                for menu in daftar_menu:
+                    sql = """
+                    UPDATE menucafe_pelangi
+                    SET stok_pelangi = stok_pelangi + %s
+                    WHERE id_menu_pelangi = %s
+                    """
+
+                    cursor.execute(sql, (menu[1], menu[0]))
+
+            # Menghapus detail pesanan terlebih dahulu
+            sql = """
+            DELETE FROM detail_pesanan_pelangi
+            WHERE id_pesanan_pelangi = %s
+            """
+
+            cursor.execute(sql, (id_pesanan_pelangi,))
+
+            # Menghapus pesanan utama
+            sql = """
+            DELETE FROM pesanan_pelangi
+            WHERE id_pesanan_pelangi = %s
+            """
+
+            cursor.execute(sql, (id_pesanan_pelangi,))
+
+            koneksi.commit()
+
+            print("\nPesanan berhasil dihapus!")
+
+        else:
+            print("\nPenghapusan dibatalkan.")
+
+    input("\nTekan Enter untuk kembali...")
+
+def batalkan_pesanan_user():
+    os.system("clear")
+
+    print("\n===== BATALKAN PESANAN =====")
+
+    nama_pelanggan_pelangi = input("Masukkan nama pelanggan: ")
+
+    # Mencari ID pelanggan
+    sql = """
+    SELECT id_pelanggan_pelangi
+    FROM pelanggan_pelangi
+    WHERE LOWER(nama_pelanggan_pelangi) = LOWER(%s)
+    """
+    cursor.execute(sql, (nama_pelanggan_pelangi,))
+    pelanggan = cursor.fetchone()
+
+    if pelanggan is None:
+        print("Pelanggan tidak ditemukan!")
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    id_pelanggan_pelangi = pelanggan[0]
+
+    # Menampilkan pesanan yang berhasil
+    sql = """
+    SELECT id_pesanan_pelangi, total_harga_pelangi,
+           tanggal_pesanan_pelangi
+    FROM pesanan_pelangi
+    WHERE id_pelanggan_pelangi = %s
+    AND status_pelangi = 'Berhasil'
+    """
+    cursor.execute(sql, (id_pelanggan_pelangi,))
+    hasil = cursor.fetchall()
+
+    if len(hasil) == 0:
+        print("\nTidak ada pesanan yang bisa dibatalkan.")
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    print("\n===== DAFTAR PESANAN =====")
+
+    for row in hasil:
+        print(f"\nID Pesanan  : {row[0]}")
+        print(f"Total Harga : Rp{row[1]:,}")
+        print(f"Tanggal     : {row[2]}")
+
+    id_pesanan_pelangi = input("\nMasukkan ID pesanan yang ingin dibatalkan: ")
+
+    # Memastikan pesanan milik pelanggan
+    sql = """
+    SELECT id_pesanan_pelangi
+    FROM pesanan_pelangi
+    WHERE id_pesanan_pelangi = %s
+    AND id_pelanggan_pelangi = %s
+    AND status_pelangi = 'Berhasil'
+    """
+    cursor.execute(sql, (id_pesanan_pelangi, id_pelanggan_pelangi))
+    pesanan = cursor.fetchone()
+
+    if pesanan is None:
+        print("Pesanan tidak ditemukan atau sudah dibatalkan!")
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    konfirmasi = input("\nYakin ingin membatalkan pesanan? (y/n): ").lower()
+
+    if konfirmasi != "y":
+        print("Pembatalan dibatalkan.")
+        input("\nTekan Enter untuk kembali...")
+        return
+
+    # Mengambil detail pesanan
+    sql = """
+    SELECT id_menu_pelangi, jumlah_pelangi
+    FROM detail_pesanan_pelangi
+    WHERE id_pesanan_pelangi = %s
+    """
+    cursor.execute(sql, (id_pesanan_pelangi,))
+    detail = cursor.fetchall()
+
+    # Mengembalikan stok menu
+    for item in detail:
+        sql = """
+        UPDATE menucafe_pelangi
+        SET stok_pelangi = stok_pelangi + %s
+        WHERE id_menu_pelangi = %s
+        """
+        cursor.execute(sql, (item[1], item[0]))
+
+    # Mengubah status pesanan
+    sql = """
+    UPDATE pesanan_pelangi
+    SET status_pelangi = 'Dibatalkan'
+    WHERE id_pesanan_pelangi = %s
+    """
+    cursor.execute(sql, (id_pesanan_pelangi,))
+
+    koneksi.commit()
+
+    print("\nPesanan berhasil dibatalkan!")
+    print("Status : Dibatalkan")
+
+    input("\nTekan Enter untuk kembali...")
+
+while True : 
+    hasil_login = login()
+
+    if hasil_login:
+        username = hasil_login[0]
+        nama_pelanggan_pelangi = hasil_login[1]
+    # MENU ADMIN
+    if username == "admin":
+        while True:
+            print("\n===== MENU ADMIN =====")
+            print("1. Tambah Menu")
+            print("2. Lihat Menu")
+            print("3. Ubah Menu")
+            print("4. Hapus Menu")
+
+            print("\n===== MENU PELANGGAN =====")
+            print("5. Tambah Pelanggan")
+            print("6. Lihat Pelanggan")
+            print("7. Ubah Pelanggan")
+            print("8. Hapus Pelanggan")
+
+            print("\n===== MENU PEMESANAN =====")
+            print("9. Tambah Pesanan")
+            print("10. Lihat Pesanan")
+            print("11. Ubah Pesanan")
+            print("12. Hapus Pesanan")
+
+            print("\n===== FITUR TAMBAHAN =====")
+            print("13. Lihat Pesanan")
+            print("14. Lihat Menu Termurah")
+            print("15. Cari Menu")
+            print("16. Keluar")
+
+            pilih = input("Pilih menu: ")
+
+            if pilih == "1": tambah_menu()
+            elif pilih == "2": tampil_menu()
+            elif pilih == "3": ubah_menu()
+            elif pilih == "4": hapus_menu()
+            elif pilih == "5": tambah_pelanggan()
+            elif pilih == "6": tampil_pelanggan()
+            elif pilih == "7": ubah_pelanggan()
+            elif pilih == "8": hapus_pelanggan()
+            elif pilih == "9": tambah_pesanan()
+            elif pilih == "10": tampil_pesanan()
+            elif pilih == "11": ubah_pesanan()
+            elif pilih == "12": hapus_pesanan()
+            elif pilih == "13": cari_pesanan()
+            elif pilih == "14": urut_menu()
+            elif pilih == "15": cari_menu()
+            elif pilih == "16":
+                print("Program selesai!")
+                break
+            else:
+                print("Pilihan tidak tersedia!")
+
+    # MENU USER
+    else:
+        while True:
+            print("\n===== MENU USER =====")
+            print("1. Lihat Menu")
+            print("2. Cari Menu")
+            print("3. Pesan Menu")
+            print("4. Lihat Pesanan Saya")
+            print("5. Batalkan Pesanan")
+            print("6. Keluar")
+
+            pilih = input("Pilih menu: ")
+
+            if pilih == "1": tampil_menu()
+            elif pilih == "2": cari_menu()
+            elif pilih == "3": pesan_menu()
+            elif pilih == "4": lihat_pesanan()
+            elif pilih == "5": batalkan_pesanan_user()
+            elif pilih == "6":
+                print("Program selesai!")
+                break
+            else:
+                print("Pilihan tidak tersedia!")
+
+    print("\n===== KELUAR =====")
+    print("1. Kembali ke Halaman Login")
+    print("2. Keluar dari Program")
+
+    pilihan_keluar = input("Pilih: ")
+
+    if pilihan_keluar == "1": continue
+
+    elif pilihan_keluar == "2":
+        print("\nTerima kasih telah menggunakan program!")
+        break
+
+    else:
+        print("Pilihan tidak valid!")
+        continue
